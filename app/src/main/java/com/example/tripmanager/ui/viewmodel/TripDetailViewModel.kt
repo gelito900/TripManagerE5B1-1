@@ -3,6 +3,8 @@ package com.example.tripmanager.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tripmanager.data.model.Trip
+import com.example.tripmanager.data.model.ItineraryItem
+import com.example.tripmanager.data.repository.ItineraryRepository
 import com.example.tripmanager.data.repository.TripRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,6 +13,7 @@ import kotlinx.coroutines.launch
 
 class TripDetailViewModel(
     private val tripRepository: TripRepository,
+    private val itineraryRepository: ItineraryRepository,
     private val tripId: Long
 ) : ViewModel() {
     
@@ -19,8 +22,8 @@ class TripDetailViewModel(
 
     init {
         loadTrip()
+        loadItineraryItems()
     }
-
     private fun loadTrip() {
         viewModelScope.launch {
             try {
@@ -44,6 +47,22 @@ class TripDetailViewModel(
             }
         }
     }
+    private fun loadItineraryItems() {
+        viewModelScope.launch {
+            try {
+                itineraryRepository.getItineraryByTrip(tripId).collect { items ->
+                    _uiState.value = _uiState.value.copy(
+                        itineraryItems = items
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Error al cargar el itinerario: ${e.message}"
+                )
+            }
+        }
+    }
+
 
     fun limpiarError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
@@ -52,6 +71,7 @@ class TripDetailViewModel(
 
 data class TripDetailUiState(
     val trip: Trip? = null,
+    val itineraryItems: List<ItineraryItem> = emptyList(),
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )
